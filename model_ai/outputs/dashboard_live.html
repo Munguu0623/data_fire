@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>УБ Гал түймрийн эрсдэлийн прогноз — Онцгой байдлын хяналтын самбар</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto+Condensed:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c232c; --line:#2a3038;
+    --txt:#e6edf3; --txt2:#8b949e; --txt3:#6e7681;
+    --ember:#ff5722; --ember2:#ff8a50; --elec:#3d9bff; --smoke:#d4a017;
+    --ok:#2ea043; --warn:#d29922; --crit:#f85149;
+    --mono:'JetBrains Mono',monospace; --disp:'Oswald',sans-serif; --body:'Roboto Condensed',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--txt);font-family:var(--body);
+    background-image:radial-gradient(circle at 15% -10%,rgba(255,87,34,0.08),transparent 40%),
+      radial-gradient(circle at 90% 0%,rgba(61,155,255,0.06),transparent 35%);
+    min-height:100vh;padding:24px;}
+  .wrap{max-width:1280px;margin:0 auto}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;
+    border-bottom:2px solid var(--ember);padding-bottom:16px;margin-bottom:24px;flex-wrap:wrap;gap:16px}
+  .brand h1{font-family:var(--disp);font-weight:700;font-size:30px;letter-spacing:-0.5px;
+    text-transform:uppercase;line-height:1}
+  .brand h1 span{color:var(--ember)}
+  .brand p{color:var(--txt2);font-size:14px;margin-top:6px;letter-spacing:0.5px}
+  .sysbadge{font-family:var(--mono);font-size:11px;color:var(--txt3);text-align:right;line-height:1.7}
+  .sysbadge b{color:var(--ok)}
+
+  .controls{display:flex;gap:20px;flex-wrap:wrap;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin-bottom:20px;align-items:center}
+  .ctrl-group{display:flex;flex-direction:column;gap:7px}
+  .ctrl-group label{font-family:var(--mono);font-size:11px;color:var(--txt3);
+    text-transform:uppercase;letter-spacing:1px}
+  .seg{display:flex;background:var(--panel2);border-radius:7px;padding:3px;gap:2px}
+  .seg button{background:none;border:none;color:var(--txt2);padding:7px 14px;
+    border-radius:5px;cursor:pointer;font-family:var(--body);font-size:14px;font-weight:500;
+    transition:all .15s;white-space:nowrap}
+  .seg button:hover{color:var(--txt)}
+  .seg button.on{background:var(--ember);color:#fff;font-weight:700}
+  .seg.elec button.on{background:var(--elec)}
+  .seg.smoke button.on{background:var(--smoke);color:#1a1a1a}
+
+  .monthbar{display:flex;gap:3px;flex:1;min-width:280px}
+  .monthbar button{flex:1;background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt2);padding:8px 0;border-radius:5px;cursor:pointer;
+    font-family:var(--mono);font-size:13px;transition:all .12s}
+  .monthbar button:hover{border-color:var(--ember2);color:var(--txt)}
+  .monthbar button.on{background:var(--ember);color:#fff;border-color:var(--ember);font-weight:600}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+    position:relative;overflow:hidden}
+  .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ember)}
+  .kpi .lab{font-family:var(--mono);font-size:11px;color:var(--txt3);
+    text-transform:uppercase;letter-spacing:1px}
+  .kpi .val{font-family:var(--disp);font-weight:700;font-size:32px;margin-top:6px;line-height:1}
+  .kpi .sub{font-size:13px;color:var(--txt2);margin-top:4px}
+
+  .grid{display:grid;grid-template-columns:1.4fr 1fr;gap:20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
+  .card h2{font-family:var(--disp);font-weight:600;font-size:17px;text-transform:uppercase;
+    letter-spacing:0.5px;margin-bottom:4px;display:flex;align-items:center;gap:9px}
+  .card h2 .dot{width:9px;height:9px;border-radius:50%;background:var(--ember)}
+  .card .hint{color:var(--txt3);font-size:13px;margin-bottom:16px}
+
+  .ranklist{display:flex;flex-direction:column;gap:5px;max-height:560px;overflow-y:auto;padding-right:6px}
+  .ranklist::-webkit-scrollbar{width:7px}
+  .ranklist::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+  .rank{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:12px;
+    background:var(--panel2);border-radius:7px;padding:10px 13px;border-left:3px solid transparent;
+    transition:transform .1s}
+  .rank:hover{transform:translateX(3px)}
+  .rank .num{font-family:var(--mono);font-size:14px;color:var(--txt3);font-weight:600}
+  .rank .who{display:flex;flex-direction:column;gap:1px}
+  .rank .who b{font-size:15px;font-weight:600}
+  .rank .who small{color:var(--txt3);font-size:12px;font-family:var(--mono)}
+  .rank .risk{display:flex;align-items:center;gap:10px}
+  .rank .bar{width:90px;height:7px;background:var(--panel);border-radius:4px;overflow:hidden}
+  .rank .bar i{display:block;height:100%;border-radius:4px}
+  .rank .pct{font-family:var(--mono);font-size:14px;font-weight:600;width:42px;text-align:right}
+
+  .lvl-crit{border-left-color:var(--crit)!important}
+  .lvl-high{border-left-color:var(--ember)!important}
+  .lvl-med{border-left-color:var(--warn)!important}
+  .lvl-low{border-left-color:var(--txt3)!important}
+
+  .heat{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-top:6px}
+  .heat .hd{font-family:var(--mono);font-size:10px;color:var(--txt3);text-align:center;padding-bottom:3px}
+  .heat .cell{aspect-ratio:1;border-radius:3px;cursor:default;transition:transform .1s}
+  .heat .cell:hover{transform:scale(1.25);z-index:2;outline:1px solid var(--txt)}
+  .heatrow-lab{font-family:var(--mono);font-size:11px;color:var(--txt2);
+    display:flex;align-items:center;padding-right:8px}
+
+  .metrics{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  .metric{background:var(--panel2);border-radius:8px;padding:13px 15px}
+  .metric .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+  .metric .top b{font-size:15px}
+  .metric .grade{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:4px;font-weight:600}
+  .g-good{background:rgba(46,160,67,.18);color:#3fb950}
+  .g-mid{background:rgba(210,153,34,.18);color:#e3b341}
+  .mrow{display:flex;gap:18px;font-size:13px;color:var(--txt2)}
+  .mrow span b{color:var(--txt);font-family:var(--mono)}
+
+  footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);
+    color:var(--txt3);font-size:12px;font-family:var(--mono);line-height:1.7}
+  .note{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);
+    border-radius:8px;padding:13px 16px;margin-top:20px;font-size:13px;color:var(--txt2);line-height:1.6}
+  .note b{color:var(--warn)}
+
+  .loading{display:flex;align-items:center;justify-content:center;min-height:60vh;
+    font-family:var(--mono);font-size:14px;color:var(--txt2);flex-direction:column;gap:16px}
+  .spinner{width:36px;height:36px;border:3px solid var(--line);border-top-color:var(--ember);
+    border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err-box{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);
+    border-radius:10px;padding:20px 24px;font-family:var(--mono);font-size:13px;
+    color:var(--crit);line-height:1.8;max-width:600px;margin:40px auto}
+
+  @media(max-width:980px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="loading"><div class="spinner"></div>Өгөгдөл ачааллаж байна…</div>
+</div>
+<script>
+// ── Тохиргоо ─────────────────────────────────────────────────────────────────
+// Байршуулсны дараа энэ хаягийг өөрийн серверийн хаягаар солино.
+const API_BASE = 'http://localhost:8000';
+
+// ── Дашбордын тогтмолууд ─────────────────────────────────────────────────────
+const MONTHS = ['1-р','2-р','3-р','4-р','5-р','6-р','7-р','8-р','9-р','10-р','11-р','12-р'];
+const CAUSES = {
+  ilgal:{name:'Ил гал', key:'risk_ilgal', n:'n_ilgal', col:'var(--ember)', seg:''},
+  tsakhilgaan:{name:'Цахилгаан', key:'risk_tsakhilgaan', n:'n_tsakhilgaan', col:'var(--elec)', seg:'elec'},
+  yandan:{name:'Яндан/цонолт', key:'risk_yandan', n:'n_yandan', col:'var(--smoke)', seg:'smoke'},
+};
+let DATA = null;
+let state = { cause:'ilgal', month:3 };
+
+// ── API-с өгөгдөл татах ───────────────────────────────────────────────────────
+async function loadAndRender() {
+  try {
+    const [records, metricsResp, distResp] = await Promise.all([
+      fetch(`${API_BASE}/risk?year=2025`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`${API_BASE}/metrics`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`${API_BASE}/districts`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }),
+    ]);
+    DATA = {
+      records:   records,
+      districts: distResp.districts,
+      metrics:   metricsResp.metrics,
+      meta:      metricsResp.meta,
+    };
+    render();
+  } catch(e) {
+    document.getElementById('app').innerHTML = `
+      <div class="err-box">
+        <b>API холбогдоогүй байна</b><br><br>
+        Алдаа: ${e.message}<br>
+        API хаяг: <b>${API_BASE}</b><br><br>
+        Шийдэл:<br>
+        1. <code>cd model_ai</code><br>
+        2. <code>uvicorn api.main:app --port 8000</code><br>
+        3. Хуудсыг дахин ачаална уу
+      </div>`;
+  }
+}
+
+// ── Render функцүүд (өөрчлөгдөөгүй) ──────────────────────────────────────────
+function riskColor(v){
+  if(v>=0.7) return '#f85149';
+  if(v>=0.5) return '#ff5722';
+  if(v>=0.3) return '#d29922';
+  if(v>=0.15) return '#3d6b2f';
+  return '#21262d';
+}
+function riskLevel(v){
+  if(v>=0.7) return 'crit'; if(v>=0.5) return 'high';
+  if(v>=0.3) return 'med'; return 'low';
+}
+
+function render(){
+  const c = CAUSES[state.cause];
+  const rows = DATA.records.filter(r=>r.month===state.month);
+  rows.sort((a,b)=> b[c.key]-a[c.key]);
+
+  const avgRisk = rows.reduce((s,r)=>s+r[c.key],0)/rows.length;
+  const critCount = rows.filter(r=>r[c.key]>=0.7).length;
+  const highCount = rows.filter(r=>r[c.key]>=0.5).length;
+
+  const app = document.getElementById('app');
+  app.innerHTML = `
+  <header>
+    <div class="brand">
+      <h1>ГАЛ ТҮЙМРИЙН <span>ЭРСДЭЛИЙН ПРОГНОЗ</span></h1>
+      <p>Улаанбаатар · Хороо түвшний сарын урьдчилсан тооцоо · Онцгой байдлын сургалт төлөвлөлт</p>
+    </div>
+    <div class="sysbadge">
+      МОДЕЛ: XGBoost ×3<br>
+      СУРГАЛТ: ${DATA.meta.train_period} · ТЕСТ: ${DATA.meta.test_period}<br>
+      ТӨЛӨВ: <b>● ИДЭВХТЭЙ</b>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>Гал гарах шалтгаан</label>
+      <div class="seg ${c.seg}">
+        ${Object.entries(CAUSES).map(([k,v])=>
+          `<button class="${k===state.cause?'on':''}" onclick="setCause('${k}')">${v.name}</button>`).join('')}
+      </div>
+    </div>
+    <div class="ctrl-group" style="flex:1">
+      <label>Сар (2025 он)</label>
+      <div class="monthbar">
+        ${MONTHS.map((m,i)=>`<button class="${i+1===state.month?'on':''}" onclick="setMonth(${i+1})">${i+1}</button>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="lab">Сонгосон шалтгаан</div>
+      <div class="val" style="color:${c.col}">${c.name}</div>
+      <div class="sub">${MONTHS[state.month-1]} сар · 204 хороо</div></div>
+    <div class="kpi" style="--ember:var(--crit)"><div class="lab">Онцгой эрсдэлт</div>
+      <div class="val">${critCount}</div><div class="sub">хороо (эрсдэл ≥ 70%)</div></div>
+    <div class="kpi" style="--ember:var(--ember)"><div class="lab">Өндөр эрсдэлт</div>
+      <div class="val">${highCount}</div><div class="sub">хороо (эрсдэл ≥ 50%)</div></div>
+    <div class="kpi" style="--ember:var(--elec)"><div class="lab">Дундаж эрсдэл</div>
+      <div class="val">${(avgRisk*100).toFixed(0)}%</div><div class="sub">бүх хороогоор</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2><span class="dot" style="background:${c.col}"></span>Сургалт явуулах эрэмбэ — ${MONTHS[state.month-1]} сар</h2>
+      <p class="hint">Эрсдэлийн оноогоор эрэмбэлэв. Дээд эрэмбийн хороод руу урьдчилсан сургалт, шалган зөвлөгөө чиглүүлнэ.</p>
+      <div class="ranklist">
+        ${rows.slice(0,40).map((r,i)=>{
+          const v=r[c.key]; const lv=riskLevel(v);
+          return `<div class="rank lvl-${lv}">
+            <div class="num">${i+1}</div>
+            <div class="who"><b>${r.district}</b><small>${r.khoroo}-р хороо · ${r.pop.toLocaleString()} хүн</small></div>
+            <div class="risk">
+              <div class="bar"><i style="width:${(v*100).toFixed(0)}%;background:${riskColor(v)}"></i></div>
+              <div class="pct" style="color:${riskColor(v)}">${(v*100).toFixed(0)}%</div>
+            </div></div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:20px">
+        <h2><span class="dot" style="background:${c.col}"></span>Улирлын дулааны зураглал</h2>
+        <p class="hint">Дүүрэг × сар. Тод өнгө = өндөр дундаж эрсдэл. Улирлын хэв маяг харагдана.</p>
+        <div id="heatmap"></div>
+      </div>
+      <div class="card">
+        <h2><span class="dot"></span>Загварын чанар (тест: 2024-25)</h2>
+        <p class="hint">Бодит гарсан галаар шалгасан үзүүлэлт.</p>
+        <div class="metrics">
+          ${DATA.metrics.map(m=>{
+            const good = m.roc_auc>=0.7;
+            return `<div class="metric">
+              <div class="top"><b>${m.cause}</b>
+                <span class="grade ${good?'g-good':'g-mid'}">ROC-AUC ${m.roc_auc.toFixed(2)}</span></div>
+              <div class="mrow">
+                <span>PR-AUC: <b>${m.pr_auc.toFixed(2)}</b></span>
+                <span>Суурь: <b>${(m.baseline*100).toFixed(0)}%</b></span>
+                <span>Дээд50 хамрах: <b>${(m.recall_top50*100).toFixed(0)}%</b></span>
+              </div></div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>⚠ Тайлбар:</b> Энэ нь шийдвэр гаргалтыг ДЭМЖИХ хэрэгсэл. Эрсдэлийн оноо нь түүхэн хэв маяг, улирал, хүн амд тулгуурласан харьцангуй эрэмбэ.
+    Яндан/цонолтын загвар хамгийн нарийвчлалтай (улирлын тогтмол хэв маягтай). Ил гал, цахилгааны нарийвчлалыг
+    нэмэгдүүлэхэд цаг агаар, гэрийн нягтралын дата нэмэх шаардлагатай.
+  </div>
+
+  <footer>
+    Эх сурвалж: 2015-2025 оны гал түймрийн дуудлага (24,787) · Хүн амын тоо (ҮСХ) · 204 хороо<br>
+    Загвар: XGBoost, цаг хугацааны баталгаажуулалт · API: ${API_BASE}
+  </footer>`;
+
+  renderHeatmap();
+}
+
+function renderHeatmap(){
+  const c = CAUSES[state.cause];
+  const el = document.getElementById('heatmap');
+  const dists = DATA.districts;
+  let grid = '<div style="display:grid;grid-template-columns:90px repeat(12,1fr);gap:3px;margin-top:6px">';
+  grid += '<div></div>';
+  for(let m=1;m<=12;m++) grid+=`<div class="hd">${m}</div>`;
+  dists.forEach(d=>{
+    grid += `<div class="heatrow-lab">${d.length>9?d.slice(0,8)+'…':d}</div>`;
+    for(let m=1;m<=12;m++){
+      const rs = DATA.records.filter(r=>r.district===d && r.month===m);
+      const avg = rs.reduce((s,r)=>s+r[c.key],0)/(rs.length||1);
+      const sel = (m===state.month)?'outline:2px solid var(--txt);':'';
+      grid += `<div class="cell" style="background:${riskColor(avg)};${sel}" title="${d} ${m}-р сар: ${(avg*100).toFixed(0)}%"></div>`;
+    }
+  });
+  grid += '</div>';
+  el.innerHTML = grid;
+}
+
+function setCause(c){ state.cause=c; render(); }
+function setMonth(m){ state.month=m; render(); }
+
+// ── Эхлүүлэх ──────────────────────────────────────────────────────────────────
+loadAndRender();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+district,ger_ratio,source
+Баянгол,0.42,fallback
+Баянзүрх,0.6,fallback
+Сонгинохайрхан,0.72,fallback
+Сүхбаатар,0.25,fallback
+Чингэлтэй,0.3,fallback
+Хан-Уул,0.0911,osm
+Налайх,0.1898,osm
+Багануур,0.62,fallback
+Багахангай,0.0,osm

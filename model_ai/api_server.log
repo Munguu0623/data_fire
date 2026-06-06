@@ -1,0 +1,24 @@
+INFO:     127.0.0.1:51205 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51205 - "GET /districts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51205 - "GET /risk?year=2025&month=3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57951 - "GET / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52754 - "GET /rank?month=1&cause=yandan&limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52754 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52754 - "GET /summary/3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52754 - "GET /risk/%D0%91%D0%B0%D1%8F%D0%BD%D0%B7%D2%AF%D1%80%D1%85/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52752 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52752 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65182 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58635 - "POST /predict HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:61891 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54123 - "GET /risk?year=2025 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51412 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51127 - "GET /districts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54037 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54037 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55630 - "GET /risk?year=2025 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61542 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56883 - "GET /districts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54512 - "GET /risk?year=2025 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55641 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56620 - "GET /districts HTTP/1.1" 200 OK

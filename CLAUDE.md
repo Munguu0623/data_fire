@@ -17,13 +17,16 @@ Dependencies: `pandas`, `numpy`, `xgboost`, `scikit-learn`, `openpyxl`, `pyarrow
 ## Pipeline (run in order from `model_ai/`)
 
 ```bash
-python scripts/01_population.py       # Parse Excel → pop_district.csv, pop_khoroo.csv
-python scripts/02_train_monthly.py    # Build panel, engineer features, train 3 XGBoost models (~1 min)
-python scripts/03_dashboard_data.py   # Scored panel → dashboard_data.json
-python scripts/04_build_dashboard.py  # Inject JSON into HTML template → outputs/ub_fire_risk_dashboard.html
+python scripts/01_population.py          # Parse Excel → pop_district.csv, pop_khoroo.csv
+python scripts/02_train_monthly.py       # Build panel, engineer features, train 3 XGBoost models (~1 min)
+python scripts/03_dashboard_data.py      # Scored panel → dashboard_data.json (2025 historical)
+python scripts/05_forecast_next_month.py # Predict next month → forecast_data.json (run monthly)
+python scripts/04_build_dashboard.py     # Inject both JSONs → outputs/ub_fire_risk_dashboard.html
 ```
 
 The final `outputs/ub_fire_risk_dashboard.html` is fully self-contained — no server needed, open directly in a browser.
+
+**Monthly refresh:** only steps 05 → 04 need to be re-run each month to update the forecast.
 
 ## Architecture
 
@@ -76,3 +79,106 @@ Priority data additions to improve accuracy:
 1. **Khoroo boundary GeoJSON** — unlocks ger density, OSM land-use features
 2. **Weather data** — monthly temp/wind/humidity via Open-Meteo Archive API (free, no key)
 3. **Socioeconomic data** — income/unemployment per khoroo from NSO
+
+
+
+Сайхан асуулт. Системийн одоогийн түвшин, ОБЕГ-н ажлын онцлогийг харгалзан бодит үнэ цэнтэй 3 давхарга санал
+  болгоно.
+
+  ---
+  1. Яаралтай нэмж болох (хялбар, их үр дүн)
+
+  📊 Сарын автомат тайлан (PDF)
+
+  Сар бүр загвар ажиллаад дараах PDF гарна:
+  - Өндөр эрсдэлт TOP-20 хороо
+  - Өмнөх сартай харьцуулсан өөрчлөлт (↑↓)
+  - Дүүрэг бүрийн хураангуй
+  - Удирдлагад илгээх, архивд хадгалах
+
+  Яагаад: Одоо алба хаагчид гараар тайлан бичдэг → автоматжуулна
+
+  ---
+  📈 Эрсдэлийн чиг хандлага (Trend)
+
+  Хороо бүрд ↑ нэмэгдэж байна / ↓ буурч байна / → тогтвортой зэрэглэл харуулна. Өмнөх 3 сарын дундаж vs одоогийн
+  харьцуулалт.
+
+  Яагаад: "Энэ хороо өнгөрсөн сараас 15% нэмэгдсэн" гэдэг мэдээлэл илүү ухааллаг
+
+  ---
+  📱 Мобайл дасан зохицол
+
+  Одоо 1400px өргөн. Алба хаагчид талбайд утас ашигладаг → responsive layout
+
+  ---
+  2. Дунд хугацаа (өндөр нөлөө)
+
+  🏠 Гэр хорооллын нягтрал дата
+
+  Хамгийн чухал feature — одоо байгаа загварт алга.
+
+  OpenStreetMap-аас гэр/орон сууц харьцааг хороо бүрт тооцвол яндан болон ил галын загварын нарийвчлал мэдэгдэхүйц
+  нэмэгдэнэ. УБ-ын гал түймрийн 70%+ гэр хороолол дээр гардаг.
+
+  Нэмэх feature:
+  - ger_ratio: гэрийн % (OpenStreetMap building tags)
+  - building_density: 1 км²-т барилгын тоо
+
+  ---
+  🌤 Бодит цаг агаарын урьдчилсан мэдээ
+
+  Одоо климатологийн дундаж ашигладаг. Open-Meteo-н forecast API (үнэгүй, key шаардлагагүй) ашиглаж ирэх 16 хоногийн
+  бодит мэдээ авна → сарын таамаглал илүү нарийн болно.
+
+  # Open-Meteo forecast URL (үнэгүй)
+  https://api.open-meteo.com/v1/forecast?latitude=47.92&longitude=106.92&...
+
+  ---
+  📋 Сургалт/шалгалтын бүртгэл
+
+  Дашбордод хялбар form нэмж:
+  - Аль хороонд хэзээ сургалт явуулсан бүртгэх
+  - Хамрагдсан өрх тоо
+  - Дараагийн сургалтын огноо
+  → Загвар дараагийн жилд "энэ хороо сургалт авсан" feature ашиглаж болно
+
+  ---
+  3. Стратегийн (game-changer)
+
+  🔄 Feedback loop — Бодит гал + таамаглал харьцуулалт
+
+  Загвар таамаглал хийсний дараа бодит гал гарсан эсэхийг харьцуулан:
+  - "Таамаглаж байсан 30 хороогоос хэдэнд нь бодитоор гал гарсан бэ?"
+  - Алба хаагчид загварт итгэх итгэлийг нэмэгдүүлнэ
+  - Загварыг тасралтгүй сайжруулах боломж
+
+  ---
+  🤝 105 Дуудлагын системтэй холболт
+
+  Одоо fires_clean.csv-г гараар шинэчилдэг. Хэрэв 105-н dispatch системтэй API холболт хийвэл:
+  - Бодит цагийн дата → загвар автоматаар шинэчлэгдэнэ
+  - Алба хаагчид гараар дата оруулах шаардлагагүй болно
+
+  ---
+  Тэргүүлэх дараалал
+
+  ┌─────┬────────────────────────────────────┬───────────────┬────────────┐
+  │  #  │              Юу хийх               │    Хугацаа    │   Нөлөө    │
+  ├─────┼────────────────────────────────────┼───────────────┼────────────┤
+  │ 1   │ Гэр хорооллын нягтрал              │ 1 долоо хоног │ ⭐⭐⭐⭐⭐ │
+  ├─────┼────────────────────────────────────┼───────────────┼────────────┤
+  │ 2   │ Сарын PDF тайлан                   │ 2-3 хоног     │ ⭐⭐⭐⭐   │
+  ├─────┼────────────────────────────────────┼───────────────┼────────────┤
+  │ 3   │ Бодит цаг агаарын урьдчилсан мэдээ │ 1 хоног       │ ⭐⭐⭐⭐   │
+  ├─────┼────────────────────────────────────┼───────────────┼────────────┤
+  │ 4   │ Trend харуулах                     │ 1 хоног       │ ⭐⭐⭐     │
+  ├─────┼────────────────────────────────────┼───────────────┼────────────┤
+  │ 5   │ Сургалт бүртгэл                    │ 3-4 хоног     │ ⭐⭐⭐     │
+  ├─────┼────────────────────────────────────┼───────────────┼────────────┤
+  │ 6   │ 105 холболт                        │ Урт хугацаа   │ ⭐⭐⭐⭐⭐ │
+  └─────┴────────────────────────────────────┴───────────────┴────────────┘
+
+  ---
+  Яаж эхлэх вэ? Гэр хорооллын нягтрал + PDF тайлан хоёрыг эхлүүлвэл хамгийн хурдан мэдэгдэхүйц өөрчлөлт гарна. Аль
+  нэгийг нь хийж өгөхүү?

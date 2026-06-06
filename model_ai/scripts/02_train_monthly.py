@@ -7,28 +7,21 @@
 - Walk-forward CV (3 цонх): загварын найдвартай байдлыг тестийн хугацаанаас хамааралгүй шалгана
 - Гаралт: model_m_*.json, panel_scored.parquet, metrics_monthly.json
 """
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 import pandas as pd
 import numpy as np
 import xgboost as xgb
 from sklearn.metrics import average_precision_score, roc_auc_score
 import json
 
-CAUSE_MN = {'ilgal': 'Ил гал', 'tsakhilgaan': 'Цахилгаан', 'yandan': 'Яндан/цонолт'}
+from core.features import (
+    CAUSE_MN, TSAGAAN_SAR, WEATHER_FEATS, CALENDAR_FEATS,
+    add_features, feats_for,
+)
+
 TRAIN_END, TEST_START = 2023, 2024
-
-# Цагаан сарын огноо — {жил: сар}
-TSAGAAN_SAR = {
-    2015: 2, 2016: 2, 2017: 1, 2018: 2, 2019: 2,
-    2020: 1, 2021: 2, 2022: 2, 2023: 1, 2024: 2, 2025: 1,
-}
-
-# Шалтгаан бүрт хамааралтай цаг агаарын feature-ууд
-WEATHER_FEATS = {
-    'ilgal':       ['temp_mean', 'wind_max_mean', 'dry_days', 'fire_wx_days'],
-    'tsakhilgaan': ['temp_mean', 'precip_sum', 'wind_max_mean'],
-    'yandan':      ['temp_min_mean', 'cold_days_n25', 'cold_days_n35', 'hdd'],
-}
-CALENDAR_FEATS = ['is_spring', 'is_heating_season', 'tsagaan_sar']
 
 
 def build_monthly_panel():
@@ -65,6 +58,11 @@ def build_monthly_panel():
     panel = panel.merge(stations, on='district', how='left')
     panel['n_stations'] = panel['n_stations'].fillna(1).astype(int)
 
+    # Гэр хорооллын нягтрал — дүүрэг түвшин
+    ger = pd.read_csv('./data/ger_density.csv')[['district', 'ger_ratio']]
+    panel = panel.merge(ger, on='district', how='left')
+    panel['ger_ratio'] = panel['ger_ratio'].fillna(panel['ger_ratio'].mean())
+
     # Календарийн feature-ууд
     panel['is_spring']         = panel['month'].isin([3, 4, 5]).astype(int)
     panel['is_heating_season'] = panel['month'].isin([10, 11, 12, 1, 2, 3]).astype(int)
@@ -72,32 +70,6 @@ def build_monthly_panel():
         lambda r: int(TSAGAAN_SAR.get(int(r['year']), -1) == int(r['month'])), axis=1)
 
     return panel.sort_values(['district', 'khoroo', 'year', 'month']).reset_index(drop=True)
-
-
-def add_features(df, key):
-    df = df.sort_values(['district', 'khoroo', 'year', 'month'])
-    g = df.groupby(['district', 'khoroo'])[f'n_{key}']
-    for lag in [1, 2, 3, 12]:
-        df[f'{key}_lag{lag}'] = g.shift(lag).fillna(0)
-    sh = g.shift(1)
-    for win in [3, 6, 12]:
-        df[f'{key}_roll{win}'] = (sh.groupby([df['district'], df['khoroo']])
-            .rolling(win, min_periods=1).sum().reset_index(level=[0, 1], drop=True).fillna(0))
-    df[f'{key}_cummean'] = (sh.groupby([df['district'], df['khoroo']])
-        .expanding().mean().reset_index(level=[0, 1], drop=True).fillna(0))
-    df = df.sort_values(['district', 'khoroo', 'month', 'year'])
-    gm = df.groupby(['district', 'khoroo', 'month'])[f'fire_{key}']
-    df[f'{key}_seasmonth'] = (gm.apply(lambda s: s.shift(1).expanding().mean())
-        .reset_index(level=[0, 1, 2], drop=True).fillna(0))
-    return df.sort_values(['district', 'khoroo', 'year', 'month']).reset_index(drop=True)
-
-
-def feats_for(key):
-    base = ['month_sin', 'month_cos', 'month', 'year_idx', 'log_pop', 'n_stations']
-    lag  = [f'{key}_lag1', f'{key}_lag2', f'{key}_lag3', f'{key}_lag12',
-            f'{key}_roll3', f'{key}_roll6', f'{key}_roll12',
-            f'{key}_cummean', f'{key}_seasmonth']
-    return base + CALENDAR_FEATS + lag + WEATHER_FEATS.get(key, [])
 
 
 def recall_at_k(y, s, g, k):
